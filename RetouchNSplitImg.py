@@ -27,19 +27,22 @@ class RetouchNSplitImg:
             for i in range(len(help_arr)):
                 help_el = sorted_cnts.pop(help_arr[i] - i)
                 sorted_cnts.append(help_el)
+        else:
+            return cnts
         return sorted_cnts
 
     def divide_to(self, to_height, to_side, parent_name, save_prefix, is_symbol):
-        image = cv2.imread(parent_name)
-        parent_name = "" if parent_name == 'res2.jpg' else parent_name
+        image = Image.open(parent_name)
+        image = np.array(image)
+        parent_name = "img/.jpg" if parent_name == 'img/res2.jpg' else parent_name
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         ret, thresh = cv2.threshold(gray, 50, 255, cv2.THRESH_BINARY_INV)
 
         # dilation
         kernel = np.ones((to_height, to_side), np.uint8)
         img_dilation = cv2.dilate(thresh, kernel, iterations=1)
-        cv2.imshow('dilated', img_dilation)
-        cv2.waitKey(0)
+        # cv2.imshow('dilated', img_dilation)
+        # cv2.waitKey(0)
 
         # find & sort contours
         cnts, hier = cv2.findContours(img_dilation.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -49,27 +52,33 @@ class RetouchNSplitImg:
         for i, ctr in enumerate(sorted_cnts):
             x, y, w, h = cv2.boundingRect(ctr)
             if (w > 10 and 10 < h < w) or is_symbol:
-                if save_prefix == "s" and 2.3 * h < w:
-                    part = math.ceil(w / h)
+                if save_prefix == "s" and 2.4 * h < w:
+                    part = int(w / h) # math.ceil(w / h)
                     for a in range(part):
-                        roi = image[y:y + h, x + math.ceil((w / part) * (a)):x + math.ceil((w / part) * (a + 1))]
+                        roi = image[y:y + h, x + math.ceil((w / part) * a):x + math.ceil((w / part) * (a + 1))]
                         roi = cv2.resize(roi, (28, 28))
-                        cv2.imwrite(
-                            str(parent_name.rpartition('.')[0]) + str(save_prefix) + '{}.jpg'.format(row_counter),
-                            roi)
+                        name = str(parent_name.rpartition('.')[0]) + str(save_prefix) + '{}.jpg'.format(row_counter)
+                        cv2.imwrite(name, roi)
                         row_counter += 1
                 else:
                     roi = image[y:y + h, x:x + w]
-                    if save_prefix == "s":
+                    if is_symbol:
                         roi = cv2.resize(roi, (28, 28))
-                    cv2.imwrite(str(parent_name.rpartition('.')[0]) + str(save_prefix) + '{}.jpg'.format(row_counter),
-                                roi)
+                    name = str(parent_name.rpartition('.')[0]) + str(save_prefix) + '{}.jpg'.format(row_counter)
+                    if save_prefix == "t":
+                        name = str(parent_name.rpartition('.')[0]) + '.jpg'
+                        im = Image.fromarray(np.uint8(roi))
+                        im.save(name, "JPEG")
+                    else:
+                        cv2.imwrite(name, roi)
                     row_counter += 1
         return row_counter
 
     def find_all_contour(self, img_name):
-        self.white_black(img_name, "res2.jpg", 0.85)
-        img = cv2.imread("res2.jpg", cv2.IMREAD_GRAYSCALE)
+        self.white_black(img_name, "img/res2.jpg", 0.85)
+        img = Image.open("img/res2.jpg")
+        img = np.array(img)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         blur = cv2.blur(img, (3, 3))  # blur the image
         ret, thresh = cv2.threshold(blur, 50, 255, cv2.THRESH_BINARY)
         contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -95,18 +104,20 @@ class RetouchNSplitImg:
 
     def rotate_n_perspective_img(self, rotrect, box, page, img_start):
         (x1, y1), (x2, y2), angle = rotrect
-        box1 = [[0, 0], [0, x2], [y2, x2], [y2, 0]]
+        if angle > 45:
+            (x2, y2) = (y2, x2)
+        box1 = [[0, 0], [0, y2], [x2, y2], [x2, 0]]
         box1 = self.forvard_back(box1)
         box = np.array(box, np.float32)
         box1 = np.array(box1, np.float32)
         page = self.aprox_in_array(self.find_near(page,  box), page)
-        page =self.rotate_arr_page(page, [y2, 0])
+        page =self.rotate_arr_page(page, [x2, 0])
         page = np.array(page, np.float32)
         matrix = cv2.getPerspectiveTransform(page, box1)
-        result = cv2.warpPerspective(img_start, matrix, (int(y2), int(x2)))
+        result = cv2.warpPerspective(img_start, matrix, (int(x2), int(y2)))
 
         cv2.imshow('img transform', result)
-        cv2.imwrite("res.jpg", result)
+        cv2.imwrite("img/res.jpg", result)
         cv2.waitKey(0)
 
     def rotate_arr_page(self, page, corner):
@@ -153,7 +164,8 @@ class RetouchNSplitImg:
         return rotrect, box, page
 
     def transform_img(self, img_name):
-        img_start = cv2.imread(img_name)
+        img_start = Image.open(img_name)
+        img_start = np.array(img_start)
         cv2.imshow('img1', img_start)
         cv2.waitKey(0)
 
@@ -167,28 +179,31 @@ class RetouchNSplitImg:
         self.rotate_n_perspective_img(rotrect, box, page, img_start)
 
     def brightness_n_bw_img(self):
-        image = Image.open("res.jpg")
+        image = Image.open("img/res.jpg")
 
         # Збільшення яскравості на 20%
-        new_image = ImageEnhance.Contrast(image).enhance(1.2)
+        new_image = ImageEnhance.Contrast(image).enhance(1.1)
         result = np.array(new_image)
-        cv2.imwrite("res.jpg", result)
+        cv2.imwrite("img/res.jpg", result)
 
         # перетворення в чб варіант та його читання
-        self.white_black("res.jpg", "res2.jpg", 0.8)
-        result = cv2.imread("res2.jpg")
+        self.white_black("img/res.jpg", "img/res2.jpg", 0.75)
+        result = Image.open("img/res2.jpg")
+        result = np.array(result)
         cv2.imshow('bw-result', result)
         cv2.waitKey(0)
         return result
 
     def normalize_color_of_img(self, img_name):
-        img = cv2.imread(img_name, cv2.IMREAD_GRAYSCALE)
+        img = Image.open(img_name)
+        img = np.array(img)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         blur = cv2.blur(img, (40, 40))
         blur = cv2.bitwise_not(blur)
         blur = np.array(blur) * 0.8
         img = self.calc_sum_color_rgb(img, blur, 0.6)
         img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
-        cv2.imwrite("res.jpg", img)
+        cv2.imwrite("img/res.jpg", img)
         cv2.imshow('blur', img)
         cv2.waitKey(0)
 
@@ -235,7 +250,7 @@ class RetouchNSplitImg:
         self.normalize_color_of_img(self.img_name)
 
         # Стандартизація зображення
-        self.transform_img("res.jpg")
+        self.transform_img("img/res.jpg")
 
         # висвітлення фону паперу, приберання малих косяків
         result = self.brightness_n_bw_img()
@@ -245,14 +260,14 @@ class RetouchNSplitImg:
 
         # розбиття на рядки
         size = []
-        row_c = self.divide_to(1, 100, "res2.jpg", "r", False)
+        row_c = self.divide_to(5, 100, "img/res2.jpg", "r", False)
         # розбиття на слова
         for i in range(row_c):
-            word_c = self.divide_to(1, 15, "r" + (str(i)) + ".jpg", "w", False)
+            word_c = self.divide_to(1, 15, "img/r" + (str(i)) + ".jpg", "w", False)
             # розбиття на букви
             size_symbol = []
             for j in range(word_c):
-                symbol_c = self.divide_to(2, 2, "r" + (str(i)) + "w" + (str(j)) + ".jpg", "s", True)
+                symbol_c = self.divide_to(2, 3, "img/r" + (str(i)) + "w" + (str(j)) + ".jpg", "s", True)
                 size_symbol.append(symbol_c)
             size.append(size_symbol)
         return size
