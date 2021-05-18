@@ -1,4 +1,3 @@
-import cv2
 import numpy as np
 
 
@@ -10,7 +9,7 @@ class PerzeptronNeiro:
     def __init__(self, symbol_numb):
         self.mul = [[0 for i in range(PerzeptronNeiro.size)] for j in range(PerzeptronNeiro.size)]
         self.weight = []
-        self.limit = 522
+        self.limit = 500
         self.sum = 0
         self.symbol_numb = symbol_numb
 
@@ -20,6 +19,9 @@ class PerzeptronNeiro:
             for y in range(self.size):
                 self.mul[x][y] = img[x][y] * self.weight[x][y]
                 self.sum = self.sum + self.mul[x][y]
+                if img[x][y] == 0 and self.weight[x][y] > 0:
+                    self.mul[x][y] -= int(0.3 * self.weight[x][y])
+                    self.sum = self.sum + self.mul[x][y]
 
     def rez(self):
         if self.sum >= self.limit:
@@ -74,6 +76,6 @@ def normalize_input(img):
 
 def recognize(neiro, n_img):
     neiro.mul_sum_calc(n_img)
-    print(neiro.sum)
+    # print(neiro.sum)
     # print("it is  " + chr(neiro.symbol_numb)) if neiro.rez() else print("It is NOT " + chr(neiro.symbol_numb))
     return neiro.sum, neiro.rez()

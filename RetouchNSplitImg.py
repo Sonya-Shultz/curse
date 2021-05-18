@@ -13,22 +13,23 @@ class RetouchNSplitImg:
         sorted_cnts = []
         if save_prefix == "r":
             sorted_cnts = sorted(cnts, key=lambda ctr: cv2.boundingRect(ctr)[1])
-        if save_prefix == "w" or save_prefix == "s":
-            sorted_cnts = sorted(cnts, key=lambda ctr: cv2.boundingRect(ctr)[0])
-            ind = 0
-            help_arr = []
-            coef = 2.1
-            if save_prefix == "s":
-                coef = 1.5
-            for el in sorted_cnts:
-                if cv2.boundingRect(el)[1] > (np.size(image, 0)) / coef:
-                    help_arr.append(ind)
-                ind += 1
-            for i in range(len(help_arr)):
-                help_el = sorted_cnts.pop(help_arr[i] - i)
-                sorted_cnts.append(help_el)
         else:
-            return cnts
+            if save_prefix == "w" or save_prefix == "s":
+                sorted_cnts = sorted(cnts, key=lambda ctr: cv2.boundingRect(ctr)[0])
+                ind = 0
+                help_arr = []
+                coef = 2.1
+                if save_prefix == "s":
+                    coef = 1.5
+                for el in sorted_cnts:
+                    if cv2.boundingRect(el)[1] > (np.size(image, 0)) / coef:
+                        help_arr.append(ind)
+                    ind += 1
+                for i in range(len(help_arr)):
+                    help_el = sorted_cnts.pop(help_arr[i] - i)
+                    sorted_cnts.append(help_el)
+            else:
+                return cnts
         return sorted_cnts
 
     def divide_to(self, to_height, to_side, parent_name, save_prefix, is_symbol):
@@ -51,27 +52,31 @@ class RetouchNSplitImg:
         row_counter = 0
         for i, ctr in enumerate(sorted_cnts):
             x, y, w, h = cv2.boundingRect(ctr)
-            if (w > 10 and 10 < h < w) or is_symbol:
+            if (w > 5 and 5 < h) or is_symbol:
                 if save_prefix == "s" and 2.4 * h < w:
                     part = int(w / h) # math.ceil(w / h)
                     for a in range(part):
                         roi = image[y:y + h, x + math.ceil((w / part) * a):x + math.ceil((w / part) * (a + 1))]
                         roi = cv2.resize(roi, (28, 28))
-                        name = str(parent_name.rpartition('.')[0]) + str(save_prefix) + '{}.jpg'.format(row_counter)
-                        cv2.imwrite(name, roi)
-                        row_counter += 1
+                        if self.is_trash(cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)):
+                            name = str(parent_name.rpartition('.')[0]) + str(save_prefix) + '{}.jpg'.format(row_counter)
+                            cv2.imwrite(name, roi)
+                            row_counter += 1
                 else:
                     roi = image[y:y + h, x:x + w]
-                    if is_symbol:
-                        roi = cv2.resize(roi, (28, 28))
-                    name = str(parent_name.rpartition('.')[0]) + str(save_prefix) + '{}.jpg'.format(row_counter)
-                    if save_prefix == "t":
-                        name = str(parent_name.rpartition('.')[0]) + '.jpg'
-                        im = Image.fromarray(np.uint8(roi))
-                        im.save(name, "JPEG")
-                    else:
-                        cv2.imwrite(name, roi)
-                    row_counter += 1
+                    if h > 0.2 * len(image) and w > 0.2 * len(image):
+                        if is_symbol:
+                            roi = cv2.resize(roi, (28, 28))
+                        name = str(parent_name.rpartition('.')[0]) + str(save_prefix) + '{}.jpg'.format(row_counter)
+                        if save_prefix == "t":
+                            name = str(parent_name.rpartition('.')[0]) + '.jpg'
+                            im = Image.fromarray(np.uint8(roi))
+                            im.save(name, "JPEG")
+                            row_counter += 1
+                        else:
+                            if self.is_trash(cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)):
+                                cv2.imwrite(name, roi)
+                                row_counter += 1
         return row_counter
 
     def find_all_contour(self, img_name):
@@ -182,12 +187,12 @@ class RetouchNSplitImg:
         image = Image.open("img/res.jpg")
 
         # Збільшення яскравості на 20%
-        new_image = ImageEnhance.Contrast(image).enhance(1.1)
+        new_image = ImageEnhance.Contrast(image).enhance(1.0)
         result = np.array(new_image)
         cv2.imwrite("img/res.jpg", result)
 
         # перетворення в чб варіант та його читання
-        self.white_black("img/res.jpg", "img/res2.jpg", 0.75)
+        self.white_black("img/res.jpg", "img/res2.jpg", 0.65)
         result = Image.open("img/res2.jpg")
         result = np.array(result)
         cv2.imshow('bw-result', result)
@@ -251,6 +256,7 @@ class RetouchNSplitImg:
 
         # Стандартизація зображення
         self.transform_img("img/res.jpg")
+        self.transform_img("img/res.jpg")
 
         # висвітлення фону паперу, приберання малих косяків
         result = self.brightness_n_bw_img()
@@ -260,17 +266,27 @@ class RetouchNSplitImg:
 
         # розбиття на рядки
         size = []
-        row_c = self.divide_to(5, 100, "img/res2.jpg", "r", False)
+        row_c = self.divide_to(25, 100, "img/res2.jpg", "r", False)
         # розбиття на слова
         for i in range(row_c):
-            word_c = self.divide_to(1, 15, "img/r" + (str(i)) + ".jpg", "w", False)
+            word_c = self.divide_to(15, 15, "img/r" + (str(i)) + ".jpg", "w", False)
             # розбиття на букви
             size_symbol = []
             for j in range(word_c):
-                symbol_c = self.divide_to(2, 3, "img/r" + (str(i)) + "w" + (str(j)) + ".jpg", "s", True)
+                symbol_c = self.divide_to(1, 5, "img/r" + (str(i)) + "w" + (str(j)) + ".jpg", "s", True)
                 size_symbol.append(symbol_c)
             size.append(size_symbol)
         return size
+
+    def is_trash(self, img):
+        c = 0
+        for i in range(len(img)):
+            for j in range(len(img[i])):
+                if img[i][j] < 100:
+                    c += 1
+        if c > 0.8 * (len(img)*len(img[0])):
+            return False
+        return True
 
     def find_near(self, page, box):
         index = []
