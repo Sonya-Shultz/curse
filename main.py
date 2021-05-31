@@ -18,15 +18,57 @@ def find_all_for_teach(path, all_letters, let, one_count, attempt):
             img2 = np.array(img2)
             img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
             img2 = pn.normalize_input(img2)
-            right_chr = ' '
+            right_chr = '_'
+            max_sum = 0
+            max_el = all_letters[0]
             for el in all_letters:
                 el_sum, right = pn.recognize(el, img2)
-                if right:
+                if max_sum < el_sum:
                     right_chr = chr(el.symbol_numb)
+                    max_sum = el_sum
+                    max_el = el
                 el.is_right(let, right, img2)
+            max_el.is_right(let, True, img2)
             print(right_chr, end=" ")
             counter += 1
     print("")
+
+
+def out_line_all(path_big, path_small):
+    s_let = pn.PerzeptronNeiro.c_small
+    s_big = pn.PerzeptronNeiro.c_big
+    img_h = rt.RetouchNSplitImg("img/test11.jpg")
+    for let in s_big:
+        if let not in "": #"ЯЬЩЮ":
+            path = path_big + "1\\" + let + "\\"
+            images = glob.glob(path + "*.jpg")
+            for q in range(len(images)):
+                img2 = Image.open(images[q])
+                img2 = np.array(img2)
+                img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
+                img_h.outline_line_on_img(img2, images[q])
+
+    for let in s_let.upper():
+        if let not in "": #"ЯЬЩЮ":
+            if let in s_big:
+                let2 = let.lower()
+                path = path_small + "1\\" + let2 + "\\"
+                images = glob.glob(path + "*.jpg")
+                for q in range(len(images)):
+                    img2 = Image.open(images[q])
+                    img2 = np.array(img2)
+                    img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
+                    img_h.outline_line_on_img(img2, images[q])
+                    print(images[q])
+            else:
+                let2 = let.lower()
+                path = path_big + "1\\" + let + "\\"
+                images = glob.glob(path + "*.jpg")
+                for q in range(len(images)):
+                    img2 = Image.open(images[q])
+                    img2 = np.array(img2)
+                    img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
+                    img_h.outline_line_on_img(img2, images[q])
 
 
 def teach_prez_neiro_new(one_count, attempt):
@@ -90,7 +132,10 @@ def teach_prez_neiro(size, ex):
     for i in range(len(size)):
         for j in range(len(size[i])):
             for a in range(size[i][j]):
-                img2 = pn.normalize_input(cv2.imread("r" + str(i) + "w" + str(j) + "s" + str(a) + ".jpg", cv2.IMREAD_GRAYSCALE))
+                img2 = Image.open("img/r" + str(i) + "w" + str(j) + "s" + str(a) + ".jpg")
+                img2 = np.array(img2)
+                img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
+                img2 = pn.normalize_input(img2)
                 max_sum = 0
                 for el in all_letters:
                     el_sum, right = pn.recognize(el, img2)
@@ -98,6 +143,8 @@ def teach_prez_neiro(size, ex):
                         max_sum = el_sum
                     el.is_right(ex[w], right, img2)
                 w += 1
+    for neiro in all_letters:
+        neiro.save_neiro()
 
 
 def recognize_prez_neiro(size):
@@ -107,16 +154,12 @@ def recognize_prez_neiro(size):
             one_letter = pn.PerzeptronNeiro(q)
             one_letter.read_neiro()
             all_letters.append(one_letter)
-            #print('\n'.join([''.join(['{:4}'.format(item) for item in row])
-                             #for row in one_letter.weight]))
             check(one_letter.weight, chr(q))
             print(chr(q))
         if chr(q) in pn.PerzeptronNeiro.c_small:
             one_letter = pn.PerzeptronNeiro(q)
             one_letter.read_neiro()
             all_letters.append(one_letter)
-            #print('\n'.join([''.join(['{:4}'.format(item) for item in row])
-                             #for row in one_letter.weight]))
             check(one_letter.weight, chr(q))
             print(chr(q))
     all_text = ""
@@ -127,26 +170,21 @@ def recognize_prez_neiro(size):
                 img2 = np.array(img2)
                 img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
                 img2 = pn.normalize_input(img2)
-                # img2 = pn.normalize_input(cv2.imread("r" + str(i) + "w" + str(j) + "s" + str(a) + ".jpg",
-                #   cv2.IMREAD_GRAYSCALE))
                 max_sum = 0
                 char = ' '
                 right = False
                 num = 0
                 while num < len(all_letters):
                     el_sum, right = pn.recognize(all_letters[num], img2)
-                    if max_sum < el_sum and chr(all_letters[num].symbol_numb) not in "":
+                    if max_sum < el_sum: #and right:
                         max_sum = el_sum
                         char = chr(all_letters[num].symbol_numb)
                         print(max_sum, char, end=" | ")
                     num += 1
                 print(" ")
                 all_text += char
-                #print(char, end="")
             all_text += " "
-            #print(" ", end="")
         all_text += "\n"
-        #print("")
     print(all_text)
 
 
@@ -157,20 +195,23 @@ def check(arr, name):
     for a in arr:
         help_1d = []
         for r in a:
-            if r < 0:
+            if 5*r < -125:
                 help_1d.append((0, 0, 0))
+            else:
+                if 5*r > 130:
+                    help_1d.append((255, 255, 255))
+                else:
+                    help_1d.append((125 + 5*r, 125 + 5*r, 125 + 5*r))
+            '''if r < 0:
+                help_1d.append((125+r, 125+r, 125+r))
             if r == 0:
                 help_1d.append((125, 125, 125))
             if r > 0:
-                help_1d.append((255, 255, 255))
-            #help_1d.append((0, 0, 0)) if r < 0 else help_1d.append((255,255,255))
+                help_1d.append((125+r, 125+r, 125+r))'''
         help_2d.append(help_1d)
     help_2d = np.array(help_2d, dtype=np.uint8)
-    #help_2d = np.array(help_2d)
-    #print('\n'.join([''.join(['{:4}'.format(item) for item in row]) for row in help_2d]))
     new_image = Image.fromarray(help_2d)
     new_image.save(name + '.jpg')
-
 
 
 def create_prez_neiro():
@@ -186,10 +227,8 @@ def create_prez_neiro():
 
 
 def clear_pictures(s_format, old, new):
-    # all_letters = "абвгґдеєжзиіїйклмнпростуфхцчшщьюя".upper()
-    all_letters = "йії"
+    all_letters = "ґ"
     filtr = rt.RetouchNSplitImg("img/test1.jpg")
-    # all_letters = "А"
     for el in all_letters:
         path = old + el + "\\"
         new_path = new
@@ -202,7 +241,6 @@ def clear_pictures(s_format, old, new):
             else:
                 bg = Image.new("RGB", img.size, (255, 255, 255))
                 bg.paste(img, img)
-            # bg.resize((pn.PerzeptronNeiro.size, pn.PerzeptronNeiro.size))
             name = new_path + (image.rpartition('.')[0])[5:len(image.rpartition('.')[0])] + ".jpg"
             bg.save(name)
             name = name.replace("\\", '/')
@@ -216,19 +254,85 @@ def create_folders():
         os.mkdir("c_newsmall/"+el)
 
 
-if __name__ == '__main__':
+def hellp_acc(path, all_letters, time):
+    images = glob.glob(path + "*.jpg")
+    time = time % len(images)
+    img2 = Image.open(images[time])
+    img2 = np.array(img2)
+    img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
+    img2 = pn.normalize_input(img2)
+    right_chr = '_'
+    max_sum = 0
+    max_el = all_letters[0]
+    for el in all_letters:
+        el_sum, right = pn.recognize(el, img2)
+        if max_sum < el_sum:
+            right_chr = chr(el.symbol_numb)
+            max_sum = el_sum
+            max_el = el
+    return right_chr
 
+
+def accuracy_of_execution(path_small, path_big, time):
+    s_let = pn.PerzeptronNeiro.c_small
+    s_big = pn.PerzeptronNeiro.c_big
+    all_letters = []
+    for q in range(1000, 1500):
+        if chr(q) in pn.PerzeptronNeiro.c_big:
+            one_letter = pn.PerzeptronNeiro(q)
+            one_letter.read_neiro()
+            all_letters.append(one_letter)
+        if chr(q) in pn.PerzeptronNeiro.c_small:
+            one_letter = pn.PerzeptronNeiro(q)
+            one_letter.read_neiro()
+            all_letters.append(one_letter)
+    w = 0
+    for let in s_big:
+        path = path_big + "\\" + let + "\\"
+        r_ch = hellp_acc(path, all_letters, time)
+        #print(r_ch, let)
+        if r_ch in let:
+            w += 1
+    for let in s_let.upper():
+        if let in s_big:
+            let2 = let.lower()
+            path = path_small + "\\" + let2 + "\\"
+            r_ch = hellp_acc(path, all_letters, time)
+            #print(r_ch, let2)
+            if r_ch in let2:
+                w += 1
+        else:
+            let2 = let.lower()
+            path = path_big + "\\" + let + "\\"
+            r_ch = hellp_acc(path, all_letters, time)
+            #print(r_ch, let2)
+            if r_ch in let2:
+                w += 1
+    return w/(len(s_big)+len(s_let))
+
+
+if __name__ == '__main__':
     # ex = зчитуєм з файлу чи просто прописуємо в ручну букви, але дані мають бути ідеальними для навчання
     # ex = ""
-    #create_prez_neiro()
     # create_folders()
-    # clear_pictures("*.png",  "c_big\\", "c_newbig")
-    # clear_pictures("*.jpg", "c_big\\", "c_newbig")
+    #clear_pictures("*.png",  "c_big\\", "c_newbig")
+    #clear_pictures("*.jpg", "c_big\\", "c_newbig")
     # clear_pictures("*.jpg", "c_sml\\", "c_newsmall")
-    # teach_prez_neiro(size, ex)
-    #for i in range(0, 200):
-        #teach_prez_neiro_new(1, i)
-    img = rt.RetouchNSplitImg("img/test10.jpg")
+    #out_line_all("c_newbig", "c_newsmall")
+    #create_prez_neiro()
+    for i in range(100, 150):
+        print(i)
+        teach_prez_neiro_new(1, i)
+    #img = rt.RetouchNSplitImg("img/test9.jpg")
+    #size = img.test_img()
+    #teach_prez_neiro(size, "Автострада")
+    img = rt.RetouchNSplitImg("img/test12.jpg")
     size = img.test_img()
-    print(size)
+    #teach_prez_neiro(size, "    ВбитирозкромсатирозчленитиА лепоті  м язгадующояді вчинкапі вторапокетизметримагазинузрост оміісплюледвезрукоюношупді подушкою")
+    #teach_prez_neiro(size, "Витирозкромсатирозчленитипі втораАлепоті мметриязростомязгадуюледвещояношудів чинкапакетизмагазинснуі сплюзрукоюпді п ошкою")
     recognize_prez_neiro(size)
+    ser = []
+    for i in range(73, 78):
+        ser.append(accuracy_of_execution("c_newsmall", "c_newbig", i))
+        print(ser[len(ser)-1])
+    print("середнє: " + str(np.mean(ser)))

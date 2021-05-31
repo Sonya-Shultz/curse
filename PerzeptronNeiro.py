@@ -4,7 +4,7 @@ import numpy as np
 class PerzeptronNeiro:
     size = 28
     c_big = "АБВГҐДЕЗІЇПРТУФЧ"
-    c_small = "абвгґдеєжзиіїйклмнпростуфхцчшщьюя"
+    c_small = "абвгдеєжзиіїйклмнпростуфхцчшщьюя"
 
     def __init__(self, symbol_numb):
         self.mul = [[0 for i in range(PerzeptronNeiro.size)] for j in range(PerzeptronNeiro.size)]
@@ -19,7 +19,7 @@ class PerzeptronNeiro:
             for y in range(self.size):
                 self.mul[x][y] = img[x][y] * self.weight[x][y]
                 self.sum = self.sum + self.mul[x][y]
-                if img[x][y] == 0 and self.weight[x][y] > 0:
+                if img[x][y] == 0 and self.weight[x][y] > 0.02 * self.limit: #0:
                     self.mul[x][y] -= int(0.3 * self.weight[x][y])
                     self.sum = self.sum + self.mul[x][y]
 
@@ -53,8 +53,6 @@ class PerzeptronNeiro:
                 self.weight[x][y] -= img[x][y]
 
     def is_right(self, ex, answer, img): # self - ім'я нейрона, ex - реальна буква, answer - правда, якщо АІ вважає, що це однакові букви
-        # if chr(self.symbol_numb) == ex and answer:
-        # if chr(self.symbol_numb) != ex and !answer:
         if chr(self.symbol_numb) != ex and answer:
             self.decW(img)
         if chr(self.symbol_numb) == ex and not answer:
@@ -69,7 +67,7 @@ def normalize_input(img):
     for i in range(PerzeptronNeiro.size):
         help_1d = []
         for j in range(PerzeptronNeiro.size):
-            help_1d.append(0) if img[i][j] > 220 else help_1d.append(1)
+            help_1d.append(0) if img[i][j] > 120 else help_1d.append(1)
         help_arr.append(help_1d)
     return help_arr
 

@@ -16,9 +16,9 @@ class RetouchNSplitImg:
         else:
             if save_prefix == "w" or save_prefix == "s":
                 sorted_cnts = sorted(cnts, key=lambda ctr: cv2.boundingRect(ctr)[0])
-                ind = 0
+                '''ind = 0
                 help_arr = []
-                coef = 2.1
+                coef = 1.8
                 if save_prefix == "s":
                     coef = 1.5
                 for el in sorted_cnts:
@@ -27,7 +27,7 @@ class RetouchNSplitImg:
                     ind += 1
                 for i in range(len(help_arr)):
                     help_el = sorted_cnts.pop(help_arr[i] - i)
-                    sorted_cnts.append(help_el)
+                    sorted_cnts.append(help_el)'''
             else:
                 return cnts
         return sorted_cnts
@@ -52,8 +52,8 @@ class RetouchNSplitImg:
         row_counter = 0
         for i, ctr in enumerate(sorted_cnts):
             x, y, w, h = cv2.boundingRect(ctr)
-            if (w > 5 and 5 < h) or is_symbol:
-                if save_prefix == "s" and 2.4 * h < w:
+            if (w > 10 and 10 < h) or is_symbol:
+                if save_prefix == "s" and 2.6 * h < w:
                     part = int(w / h) # math.ceil(w / h)
                     for a in range(part):
                         roi = image[y:y + h, x + math.ceil((w / part) * a):x + math.ceil((w / part) * (a + 1))]
@@ -64,9 +64,11 @@ class RetouchNSplitImg:
                             row_counter += 1
                 else:
                     roi = image[y:y + h, x:x + w]
-                    if h > 0.2 * len(image) and w > 0.2 * len(image):
+                    if h > 0.05 * len(image) and w > 0.05 * len(image):
                         if is_symbol:
                             roi = cv2.resize(roi, (28, 28))
+                        if save_prefix in "r":
+                            roi = cv2.resize(roi, (int(w*(400/h)), 400))
                         name = str(parent_name.rpartition('.')[0]) + str(save_prefix) + '{}.jpg'.format(row_counter)
                         if save_prefix == "t":
                             name = str(parent_name.rpartition('.')[0]) + '.jpg'
@@ -100,11 +102,11 @@ class RetouchNSplitImg:
             color_contours = (0, 255, 0)
             cv2.drawContours(drawing, contours, i, color_contours, 1, 8, hierarchy)
 
-        cv2.imshow('img1', img)
-        cv2.waitKey(0)
+        #cv2.imshow('img1', img)
+        #cv2.waitKey(0)
 
-        cv2.imshow('countur', drawing)
-        cv2.waitKey(0)
+       # cv2.imshow('countur', drawing)
+       # cv2.waitKey(0)
         return contours, canvas
 
     def rotate_n_perspective_img(self, rotrect, box, page, img_start):
@@ -121,9 +123,9 @@ class RetouchNSplitImg:
         matrix = cv2.getPerspectiveTransform(page, box1)
         result = cv2.warpPerspective(img_start, matrix, (int(x2), int(y2)))
 
-        cv2.imshow('img transform', result)
+        #cv2.imshow('img transform', result)
         cv2.imwrite("img/res.jpg", result)
-        cv2.waitKey(0)
+        #cv2.waitKey(0)
 
     def rotate_arr_page(self, page, corner):
         min_len = 100000000
@@ -164,15 +166,15 @@ class RetouchNSplitImg:
         box = cv2.boxPoints(rotrect)
         box = np.int0(box)
         cv2.drawContours(canvas, [box], 0, (0, 255, 255), 2)
-        cv2.imshow('box', canvas)
-        cv2.waitKey(0)
+        #cv2.imshow('box', canvas)
+        #cv2.waitKey(0)
         return rotrect, box, page
 
     def transform_img(self, img_name):
         img_start = Image.open(img_name)
         img_start = np.array(img_start)
-        cv2.imshow('img1', img_start)
-        cv2.waitKey(0)
+       # cv2.imshow('img1', img_start)
+        #cv2.waitKey(0)
 
         # Знаходимо контур листка
         contours, canvas = self.find_all_contour(img_name)
@@ -229,12 +231,12 @@ class RetouchNSplitImg:
                     img1[i, j] = help_div
         return img1
 
-    def outline_line_on_img(self, result):
+    def outline_line_on_img(self, result, name):
         # читання в чб форматі і інверсія (для підсилення кольорів)
-        gray = cv2.cvtColor(result, cv2.COLOR_BGR2GRAY)
+        '''gray = cv2.cvtColor(result, cv2.COLOR_BGR2GRAY)
         gray = cv2.bitwise_not(gray)
-        cv2.imshow('gray invert', gray)
-        cv2.waitKey(0)
+        #cv2.imshow('gray invert', gray)
+        #cv2.waitKey(0)
 
         # Пошук та виділення контурів для обведення букв
         edges = cv2.Canny(result, 50, 150, apertureSize=3)
@@ -244,11 +246,21 @@ class RetouchNSplitImg:
         if lines is not None:
             for l in lines:
                 for x1, y1, x2, y2 in l:
-                    cv2.line(result, (x1, y1), (x2, y2), (0, 0, 0), 1)
+                    cv2.line(result, (x1, y1), (x2, y2), (0, 0, 0), 2)
 
-        cv2.imshow('with countur', result)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+        #cv2.imshow('with countur', result)
+        #cv2.waitKey(0)
+        cv2.destroyAllWindows()'''
+        #gray = cv2.cvtColor(result, cv2.COLOR_BGR2GRAY)
+        result = 255-result
+        ret, thresh = cv2.threshold(result, 50, 255, cv2.THRESH_BINARY_INV)
+
+        # dilation
+        kernel = np.ones((2, 2), np.uint8)
+        img_dilation = cv2.dilate(thresh, kernel, iterations=1)
+        img_dilation = 255-img_dilation
+        cv2.imwrite(name, img_dilation)
+
 
     def test_img(self):
         # Вирівнювання кольору працює доволі довго :'(
@@ -258,22 +270,23 @@ class RetouchNSplitImg:
         self.transform_img("img/res.jpg")
         self.transform_img("img/res.jpg")
 
-        # висвітлення фону паперу, приберання малих косяків
+        # висвітлення фону паперу, прибирання малих косяків
         result = self.brightness_n_bw_img()
 
         # підведення ліній
-        self.outline_line_on_img(result)
+        result = 255 - result
+        self.outline_line_on_img(result, "img/res2.jpg")
 
         # розбиття на рядки
         size = []
-        row_c = self.divide_to(25, 100, "img/res2.jpg", "r", False)
+        row_c = self.divide_to(10, 150, "img/res2.jpg", "r", False)
         # розбиття на слова
         for i in range(row_c):
-            word_c = self.divide_to(15, 15, "img/r" + (str(i)) + ".jpg", "w", False)
+            word_c = self.divide_to(20, 50, "img/r" + (str(i)) + ".jpg", "w", False)
             # розбиття на букви
             size_symbol = []
             for j in range(word_c):
-                symbol_c = self.divide_to(1, 5, "img/r" + (str(i)) + "w" + (str(j)) + ".jpg", "s", True)
+                symbol_c = self.divide_to(5, 1, "img/r" + (str(i)) + "w" + (str(j)) + ".jpg", "s", True)
                 size_symbol.append(symbol_c)
             size.append(size_symbol)
         return size
