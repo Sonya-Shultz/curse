@@ -19,7 +19,7 @@ def find_all_for_teach(path, all_letters, let, one_count, attempt):
             img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
             img2 = pn.normalize_input(img2)
             right_chr = '_'
-            max_sum = 0
+            max_sum = -50000
             max_el = all_letters[0]
             for el in all_letters:
                 el_sum, right = pn.recognize(el, img2)
@@ -118,16 +118,7 @@ def teach_prez_neiro_new(one_count, attempt):
 
 # ex - рядок з віповдями без пробілів типу: "БабаВаляшизануласьВонакупила3кгоселедцю"
 def teach_prez_neiro(size, ex):
-    all_letters = []
-    for q in range(1000, 1500):
-        if chr(q) in pn.PerzeptronNeiro.c_big:
-            one_letter = pn.PerzeptronNeiro(q)
-            one_letter.read_neiro()
-            all_letters.append(one_letter)
-        if chr(q) in pn.PerzeptronNeiro.c_small:
-            one_letter = pn.PerzeptronNeiro(q)
-            one_letter.read_neiro()
-            all_letters.append(one_letter)
+    all_letters = whole_brain()
     w = 0
     for i in range(len(size)):
         for j in range(len(size[i])):
@@ -136,7 +127,7 @@ def teach_prez_neiro(size, ex):
                 img2 = np.array(img2)
                 img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
                 img2 = pn.normalize_input(img2)
-                max_sum = 0
+                max_sum = -50000
                 for el in all_letters:
                     el_sum, right = pn.recognize(el, img2)
                     if el_sum > max_sum and right:
@@ -170,7 +161,7 @@ def recognize_prez_neiro(size):
                 img2 = np.array(img2)
                 img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
                 img2 = pn.normalize_input(img2)
-                max_sum = 0
+                max_sum = -50000
                 char = ' '
                 right = False
                 num = 0
@@ -195,20 +186,16 @@ def check(arr, name):
     for a in arr:
         help_1d = []
         for r in a:
-            if 5*r < -125:
+            #print(r, end=" ")
+            if r < -125:
                 help_1d.append((0, 0, 0))
             else:
-                if 5*r > 130:
+                if r > 130:
                     help_1d.append((255, 255, 255))
                 else:
-                    help_1d.append((125 + 5*r, 125 + 5*r, 125 + 5*r))
-            '''if r < 0:
-                help_1d.append((125+r, 125+r, 125+r))
-            if r == 0:
-                help_1d.append((125, 125, 125))
-            if r > 0:
-                help_1d.append((125+r, 125+r, 125+r))'''
+                    help_1d.append((125 + r, 125 + r, 125 + r))
         help_2d.append(help_1d)
+        #print("")
     help_2d = np.array(help_2d, dtype=np.uint8)
     new_image = Image.fromarray(help_2d)
     new_image.save(name + '.jpg')
@@ -276,16 +263,7 @@ def hellp_acc(path, all_letters, time):
 def accuracy_of_execution(path_small, path_big, time):
     s_let = pn.PerzeptronNeiro.c_small
     s_big = pn.PerzeptronNeiro.c_big
-    all_letters = []
-    for q in range(1000, 1500):
-        if chr(q) in pn.PerzeptronNeiro.c_big:
-            one_letter = pn.PerzeptronNeiro(q)
-            one_letter.read_neiro()
-            all_letters.append(one_letter)
-        if chr(q) in pn.PerzeptronNeiro.c_small:
-            one_letter = pn.PerzeptronNeiro(q)
-            one_letter.read_neiro()
-            all_letters.append(one_letter)
+    all_letters = whole_brain()
     w = 0
     for let in s_big:
         path = path_big + "\\" + let + "\\"
@@ -311,28 +289,67 @@ def accuracy_of_execution(path_small, path_big, time):
     return w/(len(s_big)+len(s_let))
 
 
+def normal_w():
+    all_letters = whole_brain()
+    for i in all_letters:
+        i.normalise_weight()
+        i.save_neiro()
+
+
+def whole_brain():
+    all_letters = []
+    for q in range(1000, 1500):
+        if chr(q) in pn.PerzeptronNeiro.c_big:
+            one_letter = pn.PerzeptronNeiro(q)
+            one_letter.read_neiro()
+            all_letters.append(one_letter)
+        if chr(q) in pn.PerzeptronNeiro.c_small:
+            one_letter = pn.PerzeptronNeiro(q)
+            one_letter.read_neiro()
+            all_letters.append(one_letter)
+    return all_letters
+
+
+def teach_more(path):
+    images = glob.glob(path + "/*.jpg")
+    ex = ["Вбити", "розкромсати", "розчленити", "Але", "поті м", "я", "згадую", "що", "я", "ді вчинка", "пі втора",
+          "мет ри", "зростом", "ледве", "ношУ", "паке и         ",  "з", "магаазинн у", "і", "сплю", "з", "рукою",
+          "пді ", "п ошкою"]
+    for iw in range(len(images)):
+        try:
+            img_t = rt.RetouchNSplitImg(path+"/"+str(iw+1)+".jpg")
+            size_t = img_t.test_img()
+            #recognize_prez_neiro(size_t)
+            teach_prez_neiro(size_t, ex[iw])
+            print(iw)
+        except:
+            print("An exception occurred")
+
+
+
+
 if __name__ == '__main__':
-    # ex = зчитуєм з файлу чи просто прописуємо в ручну букви, але дані мають бути ідеальними для навчання
-    # ex = ""
     # create_folders()
     #clear_pictures("*.png",  "c_big\\", "c_newbig")
     #clear_pictures("*.jpg", "c_big\\", "c_newbig")
     # clear_pictures("*.jpg", "c_sml\\", "c_newsmall")
     #out_line_all("c_newbig", "c_newsmall")
     #create_prez_neiro()
-    for i in range(100, 150):
-        print(i)
-        teach_prez_neiro_new(1, i)
+    #normal_w()
     #img = rt.RetouchNSplitImg("img/test9.jpg")
     #size = img.test_img()
-    #teach_prez_neiro(size, "Автострада")
-    img = rt.RetouchNSplitImg("img/test12.jpg")
+    #for i in range(20):
+        #teach_more("img_for_teach")
+    img = rt.RetouchNSplitImg("img/test16.jpg")
     size = img.test_img()
-    #teach_prez_neiro(size, "    ВбитирозкромсатирозчленитиА лепоті  м язгадующояді вчинкапі вторапокетизметримагазинузрост оміісплюледвезрукоюношупді подушкою")
-    #teach_prez_neiro(size, "Витирозкромсатирозчленитипі втораАлепоті мметриязростомязгадуюледвещояношудів чинкапакетизмагазинснуі сплюзрукоюпді п ошкою")
+    #for i in range(7):
+        #teach_prez_neiro(size, "Автострада")
+        #teach_prez_neiro(size, "неходитудитамтбечекютьнеприє мності нуякжетудинехо тивонижчеаютькошенянаімя Га ав                                            ")
+        #teach_prez_neiro(size, "коли на бекр тьзсамогоранкуати  щенав непрокинувсятисея лю")
+        #teach_prez_neiro(size, "колинатебекричатьзсамогоранкУатищенавітьнеп кинувсятисеясплю")
     recognize_prez_neiro(size)
     ser = []
     for i in range(73, 78):
         ser.append(accuracy_of_execution("c_newsmall", "c_newbig", i))
-        print(ser[len(ser)-1])
+       # print(ser[len(ser)-1])
     print("середнє: " + str(np.mean(ser)))

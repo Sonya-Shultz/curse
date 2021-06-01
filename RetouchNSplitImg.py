@@ -197,8 +197,8 @@ class RetouchNSplitImg:
         self.white_black("img/res.jpg", "img/res2.jpg", 0.65)
         result = Image.open("img/res2.jpg")
         result = np.array(result)
-        cv2.imshow('bw-result', result)
-        cv2.waitKey(0)
+        #cv2.imshow('bw-result', result)
+        #cv2.waitKey(0)
         return result
 
     def normalize_color_of_img(self, img_name):
@@ -211,8 +211,8 @@ class RetouchNSplitImg:
         img = self.calc_sum_color_rgb(img, blur, 0.6)
         img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
         cv2.imwrite("img/res.jpg", img)
-        cv2.imshow('blur', img)
-        cv2.waitKey(0)
+       #! cv2.imshow('blur', img)
+       # !cv2.waitKey(0)
 
     def calc_sum_color_rgb(self, img1, img2, black_range):
         for i in range(len(img1)):
@@ -233,34 +233,14 @@ class RetouchNSplitImg:
 
     def outline_line_on_img(self, result, name):
         # читання в чб форматі і інверсія (для підсилення кольорів)
-        '''gray = cv2.cvtColor(result, cv2.COLOR_BGR2GRAY)
-        gray = cv2.bitwise_not(gray)
-        #cv2.imshow('gray invert', gray)
-        #cv2.waitKey(0)
-
-        # Пошук та виділення контурів для обведення букв
-        edges = cv2.Canny(result, 50, 150, apertureSize=3)
-        minLineLength = 1
-        maxLineGap = 30
-        lines = cv2.HoughLinesP(edges, 1, np.pi / 180, 20, minLineLength, maxLineGap)
-        if lines is not None:
-            for l in lines:
-                for x1, y1, x2, y2 in l:
-                    cv2.line(result, (x1, y1), (x2, y2), (0, 0, 0), 2)
-
-        #cv2.imshow('with countur', result)
-        #cv2.waitKey(0)
-        cv2.destroyAllWindows()'''
-        #gray = cv2.cvtColor(result, cv2.COLOR_BGR2GRAY)
         result = 255-result
         ret, thresh = cv2.threshold(result, 50, 255, cv2.THRESH_BINARY_INV)
 
         # dilation
-        kernel = np.ones((2, 2), np.uint8)
+        kernel = np.ones((1, 1), np.uint8)
         img_dilation = cv2.dilate(thresh, kernel, iterations=1)
         img_dilation = 255-img_dilation
         cv2.imwrite(name, img_dilation)
-
 
     def test_img(self):
         # Вирівнювання кольору працює доволі довго :'(

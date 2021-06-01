@@ -3,8 +3,8 @@ import numpy as np
 
 class PerzeptronNeiro:
     size = 28
-    c_big = "АБВГҐДЕЗІЇПРТУФЧ"
-    c_small = "абвгдеєжзиіїйклмнпростуфхцчшщьюя"
+    c_big = "АБВГДЕЗІЇПРТУФЧ"
+    c_small = "абвгґдеєжзиіїйклмнпростуфхцчшщьюя"
 
     def __init__(self, symbol_numb):
         self.mul = [[0 for i in range(PerzeptronNeiro.size)] for j in range(PerzeptronNeiro.size)]
@@ -13,14 +13,26 @@ class PerzeptronNeiro:
         self.sum = 0
         self.symbol_numb = symbol_numb
 
+    def normalise_weight(self):
+        max_w = max([max(self.weight[i]) for i in range(len(self.weight))])
+        min_w = min([min(self.weight[i]) for i in range(len(self.weight))])
+        for i in range(len(self.weight)):
+            for j in range(len(self.weight[i])):
+                if self.weight[i][j] < 0:
+                    self.weight[i][j] = int(abs(self.weight[i][j] / min_w)*(-125))
+                elif self.weight[i][j] > 0:
+                    self.weight[i][j] = int(abs(self.weight[i][j] / max_w) * 125)
+                else:
+                    self.weight[i][j] = 0
+
     def mul_sum_calc(self, img):
         self.sum = 0
         for x in range(self.size):
             for y in range(self.size):
                 self.mul[x][y] = img[x][y] * self.weight[x][y]
                 self.sum = self.sum + self.mul[x][y]
-                if img[x][y] == 0 and self.weight[x][y] > 0.02 * self.limit: #0:
-                    self.mul[x][y] -= int(0.3 * self.weight[x][y])
+                if img[x][y] == 0 and self.weight[x][y] > 0.25 * self.limit: #0:
+                    self.mul[x][y] -= int(0.4 * self.weight[x][y])
                     self.sum = self.sum + self.mul[x][y]
 
     def rez(self):
