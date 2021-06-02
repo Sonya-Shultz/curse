@@ -16,7 +16,7 @@ class RetouchNSplitImg:
         else:
             if save_prefix == "w" or save_prefix == "s":
                 sorted_cnts = sorted(cnts, key=lambda ctr: cv2.boundingRect(ctr)[0])
-                '''ind = 0
+                ind = 0
                 help_arr = []
                 coef = 1.8
                 if save_prefix == "s":
@@ -27,7 +27,7 @@ class RetouchNSplitImg:
                     ind += 1
                 for i in range(len(help_arr)):
                     help_el = sorted_cnts.pop(help_arr[i] - i)
-                    sorted_cnts.append(help_el)'''
+                    sorted_cnts.append(help_el)
             else:
                 return cnts
         return sorted_cnts
@@ -39,13 +39,13 @@ class RetouchNSplitImg:
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         ret, thresh = cv2.threshold(gray, 50, 255, cv2.THRESH_BINARY_INV)
 
-        # dilation
+        # розділяємо на контури
         kernel = np.ones((to_height, to_side), np.uint8)
         img_dilation = cv2.dilate(thresh, kernel, iterations=1)
         # cv2.imshow('dilated', img_dilation)
         # cv2.waitKey(0)
 
-        # find & sort contours
+        # знайти і відсортувати контури
         cnts, hier = cv2.findContours(img_dilation.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
         sorted_cnts = self.sort_cnts(save_prefix, cnts, image)
@@ -54,7 +54,7 @@ class RetouchNSplitImg:
             x, y, w, h = cv2.boundingRect(ctr)
             if (w > 10 and 10 < h) or is_symbol:
                 if save_prefix == "s" and 2.6 * h < w:
-                    part = int(w / h) # math.ceil(w / h)
+                    part = int(w / h)
                     for a in range(part):
                         roi = image[y:y + h, x + math.ceil((w / part) * a):x + math.ceil((w / part) * (a + 1))]
                         roi = cv2.resize(roi, (28, 28))
@@ -86,12 +86,12 @@ class RetouchNSplitImg:
         img = Image.open("img/res2.jpg")
         img = np.array(img)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        blur = cv2.blur(img, (3, 3))  # blur the image
+        blur = cv2.blur(img, (3, 3))
         ret, thresh = cv2.threshold(blur, 50, 255, cv2.THRESH_BINARY)
         contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         hull = []
 
-        # calculate points for each contour
+        # рахуємо довжину кожного контуру
         for i in range(len(contours)):
             hull.append(cv2.convexHull(contours[i], False))
 
@@ -152,7 +152,7 @@ class RetouchNSplitImg:
                 n = approx.ravel()
                 i = 0
                 for j in n:
-                    if (i % 2 == 0):
+                    if i % 2 == 0:
                         help_arr = [n[i], n[i + 1]]
                         page.append(help_arr)
                         x = n[i]
@@ -211,14 +211,13 @@ class RetouchNSplitImg:
         img = self.calc_sum_color_rgb(img, blur, 0.6)
         img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
         cv2.imwrite("img/res.jpg", img)
-       #! cv2.imshow('blur', img)
-       # !cv2.waitKey(0)
+       # cv2.imshow('blur', img)
+       # cv2.waitKey(0)
 
     def calc_sum_color_rgb(self, img1, img2, black_range):
         for i in range(len(img1)):
             for j in range(len(img1[i])):
                 help_color = np.copy(img1[i][j])
-                # is_first = True
                 if img1[i][j] >= (black_range * 255):
                     help_div = img1[i, j] + img2[i, j]
                     if help_div > 255:

@@ -31,7 +31,7 @@ class PerzeptronNeiro:
             for y in range(self.size):
                 self.mul[x][y] = img[x][y] * self.weight[x][y]
                 self.sum = self.sum + self.mul[x][y]
-                if img[x][y] == 0 and self.weight[x][y] > 0.25 * self.limit: #0:
+                if img[x][y] == 0 and self.weight[x][y] > 0.25 * self.limit:
                     self.mul[x][y] -= int(0.4 * self.weight[x][y])
                     self.sum = self.sum + self.mul[x][y]
 
@@ -64,7 +64,8 @@ class PerzeptronNeiro:
             for y in range(self.size):
                 self.weight[x][y] -= img[x][y]
 
-    def is_right(self, ex, answer, img): # self - ім'я нейрона, ex - реальна буква, answer - правда, якщо АІ вважає, що це однакові букви
+    # self - ім'я нейрона, ex - реальна буква, answer - правда, якщо АІ вважає, що це однакові букви
+    def is_right(self, ex, answer, img):
         if chr(self.symbol_numb) != ex and answer:
             self.decW(img)
         if chr(self.symbol_numb) == ex and not answer:
@@ -86,6 +87,4 @@ def normalize_input(img):
 
 def recognize(neiro, n_img):
     neiro.mul_sum_calc(n_img)
-    # print(neiro.sum)
-    # print("it is  " + chr(neiro.symbol_numb)) if neiro.rez() else print("It is NOT " + chr(neiro.symbol_numb))
     return neiro.sum, neiro.rez()
